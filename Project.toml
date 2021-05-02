@@ -1,0 +1,4 @@
+name = "FluidSuperResolution"
+uuid = "ca4fd82c-9edb-4331-9f15-2c3767ecc99d"
+authors = ["Paul Matlashewski <pmatlashewski@gmail.com>"]
+version = "0.1.0"
