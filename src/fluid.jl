@@ -6,8 +6,26 @@ using SuiteSparse
 struct Field{T}
     values::Matrix{T}
     offset::Tuple{T, T}
-    xlims::Tuple{T, T}
-    ylims::Tuple{T, T}
+    x::Matrix{T}
+    y::Matrix{T}
+end
+
+function Field(values::Matrix{T}, xlims::Tuple{Int, Int}, ylims::Tuple{Int, Int}, offset::Tuple{T, T}) where {T}
+    x = similar(values)
+    y = similar(values)
+    for (j, jval) in enumerate(ylims[1]:ylims[2])
+        yval = jval + offset[2]
+        for (i, ival) in enumerate(xlims[1]:xlims[2])
+            xval = ival + offset[1]
+            x[i, j] = xval
+            y[i, j] = yval
+        end
+    end
+    return Field(values, offset, x, y)
+end
+
+function Field(value::T, xlims::Tuple{Int, Int}, ylims::Tuple{Int, Int}, offset::Tuple{T, T}, n, m) where {T}
+    return Field(value * ones(T, n, m), xlims, ylims, offset)
 end
 
 struct Velocity{T}
@@ -15,33 +33,32 @@ struct Velocity{T}
     v::Field{T}
 end
 
+function Velocity(value::T, n::Int, m::Int) where {T}
+    u = Field(value * ones(T, n+1, m),
+             (1, n+1),
+             (1, n),
+             (zero(T), T(0.5)))
+    v = Field(value * ones(T, n, m+1),
+              (1, n),
+              (1, n+1),
+              (T(0.5), zero(T)))
+    return Velocity(u, v)
+end
+
 struct Fluid{T}
     velocity::Velocity{T}
     A::SuiteSparse.CHOLMOD.Factor{T}
     b::Vector{T}
     p::Vector{T}
-    xlims::Tuple{T, T}
-    ylims::Tuple{T, T}
     size::Tuple{Int, Int}
 end
 
-function Fluid(u, v, xlims, ylims, size)
-    n, m = size
-    dx = (xlims[2] - xlims[1]) / n
-    dy = (ylims[2] - ylims[1]) / m
-
-    u_ylims = (ylims[1], ylims[2] - dy)
-    v_xlims = (xlims[1], xlims[2] - dx)
-    u_field = Field(u, (0.0, 0.5), xlims, u_ylims)
-    v_field = Field(v, (0.5, 0.0), v_xlims, ylims)
-    velocity = Velocity(u_field, v_field)
-
-    T = typeof(u[1, 1])
+function Fluid(value::T, n, m) where {T}
+    velocity = Velocity(value, n, m)
     A = SuiteSparse.CHOLMOD.cholesky(∇²(n, m ,T))
     b = zeros(n * m)
     p = zeros(n * m)
-
-    return Fluid(velocity, A, b, p, xlims, ylims, size)
+    return Fluid(velocity, A, b, p, (n, m))
 end
 
 function Dx(values)
@@ -120,16 +137,10 @@ function ∇²(n, m, T)
     return sparse(I, J, V)
 end
 
-
-
-
-
 function interpolate(x, y, u, offset)
     xmax, ymax = size(u)
-    n, m = size(x)
-    x = x[:]
-    y = y[:]
-    u = u[:]
+    
+    u_flat = u[:]
 
     x_grid = min.(max.(x .- offset[1], 1), xmax)
     y_grid = min.(max.(y .- offset[2], 1), ymax)
@@ -148,8 +159,33 @@ function interpolate(x, y, u, offset)
     k3 = xmax * (y2 .- 1) .+ x1
     k4 = xmax * (y2 .- 1) .+ x2
 
-    u1 = getindex(u, k1) .* (1 .- dx) .+ getindex(u, k2) .* dx
-    u2 = getindex(u, k3) .* (1 .- dx) .+ getindex(u, k4) .* dx
+    u1 = getindex(u_flat, k1) .* (1 .- dx) .+ getindex(u_flat, k2) .* dx
+    u2 = getindex(u_flat, k3) .* (1 .- dx) .+ getindex(u_flat, k4) .* dx
 
-    return reshape(u1 .* (1 .- dy) .+ u2 .* dy, (n, m))
+    return u1 .* (1 .- dy) .+ u2 .* dy
+end
+
+function euler(x, y, u, v, dt)
+    u_interp = interpolate(x, y, u, [0.0, 0.5])
+    v_interp = interpolate(x, y, v, [0.5, 0.0])
+    return (x + u_interp * dt, y + v_interp * dt)
+end
+
+function euler(x, y, velocity, dt)
+    u_interp = interpolate(x, y, velocity.u.values, velocity.u.offset)
+    v_interp = interpolate(x, y, velocity.v.values, velocity.v.offset)
+    return (x + u_interp * dt, y + v_interp * dt)
+end
+
+# Semi-Lagrangian advection
+function advect!(field::Field, fluid, dt)
+    x, y = euler(field.x[:], field.y[:], fluid.velocity, -dt)
+    field.values .= reshape(interpolate(x, y, field.values, field.offset), size(field.values))
+end
+
+function advect!(velocity::Velocity, fluid, dt)
+    ux, uy = euler(velocity.u.x[:], velocity.u.y[:], fluid.velocity, -dt)
+    vx, vy = euler(velocity.v.x[:], velocity.v.y[:], fluid.velocity, -dt)
+    velocity.u.values .= reshape(interpolate(ux, uy, velocity.u.values, [0.0, 0.5]), size(velocity.u.values))
+    velocity.v.values .= reshape(interpolate(vx, vy, velocity.v.values, [0.5, 0.0]), size(velocity.v.values))
 end
