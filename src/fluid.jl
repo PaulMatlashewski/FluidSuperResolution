@@ -33,16 +33,15 @@ struct Velocity{T}
     v::Field{T}
 end
 
-function Velocity(value::T, n::Int, m::Int) where {T}
-    u = Field(value * ones(T, n+1, m),
-             (1, n+1),
-             (1, n),
-             (zero(T), T(0.5)))
-    v = Field(value * ones(T, n, m+1),
-              (1, n),
-              (1, n+1),
-              (T(0.5), zero(T)))
+function Velocity(u_values::Matrix{T}, v_values::Matrix{T}) where {T}
+    n = size(u_values)[2]
+    u = Field(u_values, (1, n+1), (1, n), (zero(T), T(0.5)))
+    v = Field(v_values, (1, n), (1, n+1), (T(0.5), zero(T)))
     return Velocity(u, v)
+end
+
+function Velocity(value::T, n::Int, m::Int) where {T}
+    return Velocity(value * ones(T, n+1, m), value * ones(T, n, m+1))
 end
 
 struct Fluid{T}

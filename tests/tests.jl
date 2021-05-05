@@ -38,3 +38,22 @@ function simulation_test(n, m, dt)
                         labels=false))
     end
 end
+
+# Divergence of velocity should be 0
+function perlin_velocity_test(grid, n, p, m)
+    u_div = zeros(n, n)
+    v_div = zeros(n, n)
+    u_offset = [0.0, 0.5]
+    v_offset = [0.5, 0.0]
+    ∇(x) = ForwardDiff.gradient(x -> sample(x, grid, p, m, n), x)
+    vel(x) = [∇(x)[2] * n, -∇(x)[1] * n]
+    div_curl(x) = ForwardDiff.gradient(x -> vel(x)[1], x)[1] + ForwardDiff.gradient(x -> vel(x)[2], x)[2]
+    for j in 1:n
+        for i in 1:n
+            x = [i, j]
+            u_div[i, j] = div_curl(x + u_offset)
+            v_div[i, j] = div_curl(x + v_offset)
+        end
+    end
+    return u_div, v_div
+end
