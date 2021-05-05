@@ -69,7 +69,11 @@ function Dy(values)
 end
 
 function divergence(velocity)
-    Dx(velocity.u.values) .+ Dy(velocity.v.values)
+    return Dx(velocity.u.values) .+ Dy(velocity.v.values)
+end
+
+function vorticity(velocity)
+    return Dy(velocity.u.values)[2:end-1, :] - Dx(velocity.v.values)[:, 2:end-1]
 end
 
 function apply_pressure_gradient!(fluid, dt)
