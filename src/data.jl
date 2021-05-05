@@ -12,13 +12,11 @@ function PerlinGrid(n)
     d = zeros(n + 1, n + 1, 2)
     d[:, :, 1] = cos.(θ)
     d[:, :, 2] = sin.(θ)
-    d[end, :, :] .= d[1, :, :]
-    d[:, end, :] .= d[:, 1, :]
     return PerlinGrid(n, d)
 end
 
 function smoothstep(x)
-    return 6x^5 - 15x^4 + 10x^3
+    return 0.5 * (sin(π * x - π/2) + 1)
 end
 
 function smoothstep(x, y)
@@ -36,17 +34,22 @@ function wrap(x::ForwardDiff.Dual{T,V,P}, n::T2) where {T,V,P,T2}
     return ForwardDiff.Dual{T}(val, p)
 end
 
+function perlin_value(grid, degree, i, j, v)
+    dist_weight = smoothstep(1 - norm(v) / norm([degree, degree]))
+    return dist_weight * dot(grid.d[i, j, :], v)
+end
+
 function sample(x, grid)
     i1 = Int(trunc(x[1]))
     j1 = Int(trunc(x[2]))
-    i2 = min(i1 + 1, grid.n + 1)
-    j2 = min(j1 + 1, grid.n + 1)
+    i2 = wrap(i1 + 1, grid.n + 1)
+    j2 = wrap(j1 + 1, grid.n + 1)
 
     dx = x - [i1, j1]
-    v1 = dot(grid.d[i1, j1, :], dx - [0, 0])
-    v2 = dot(grid.d[i2, j1, :], dx - [1, 0])
-    v3 = dot(grid.d[i2, j2, :], dx - [1, 1])
-    v4 = dot(grid.d[i1, j2, :], dx - [0, 1])
+    v1 = perlin_value(grid, 1, i1, j1, dx - [0, 0])
+    v2 = perlin_value(grid, 1, i2, j1, dx - [1, 0])
+    v3 = perlin_value(grid, 1, i2, j2, dx - [1, 1])
+    v4 = perlin_value(grid, 1, i1, j2, dx - [0, 1])
 
     u1 = v1 * smoothstep(1 - dx[1], 1 - dx[2])
     u2 = v2 * smoothstep(dx[1], 1 - dx[2])

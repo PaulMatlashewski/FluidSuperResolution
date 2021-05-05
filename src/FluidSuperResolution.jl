@@ -1,9 +1,9 @@
 module FluidSuperResolution
 
 include("fluid.jl")
-export Field, Velocity, Fluid, project!, advect!, divergence, Dx, Dy
+export Field, Velocity, Fluid, project!, advect!,  Dx, Dy, divergence, vorticity
 
 include("data.jl")
-export PerlinGrid, perlin_noise, perlin_velocity, sample, wrap, wrap2
+export PerlinGrid, perlin_noise, perlin_velocity, sample, wrap
 
 end # module
