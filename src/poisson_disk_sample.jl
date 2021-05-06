@@ -53,8 +53,7 @@ function poisson_disk_sample(r, max_check)
         end
         deleteat!(active_points, k_id)
     end
-    plot_points(grid, xs, ys)
-    return grid, xs, ys
+    return xs, ys
 end
 
 function index(grid, x, y)
