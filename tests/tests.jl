@@ -46,7 +46,7 @@ function perlin_velocity_test(grid, n, p, m)
     u_offset = [0.0, 0.5]
     v_offset = [0.5, 0.0]
     ∇(x) = ForwardDiff.gradient(x -> sample(x, grid, p, m, n), x)
-    vel(x) = [∇(x)[2] * n, -∇(x)[1] * n]
+    vel(x) = [∇(x)[2], -∇(x)[1]]
     div_curl(x) = ForwardDiff.gradient(x -> vel(x)[1], x)[1] + ForwardDiff.gradient(x -> vel(x)[2], x)[2]
     for j in 1:n
         for i in 1:n

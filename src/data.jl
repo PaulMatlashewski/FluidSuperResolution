@@ -89,13 +89,13 @@ function perlin_velocity(grid, n, p, m)
     for j in 1:n
         for i in 1:n
             x = [i, j]
-            u[i, j] = ∇(x + u_offset)[2] * n
-            v[i, j] = -∇(x + v_offset)[1] * n
+            u[i, j] = ∇(x + u_offset)[2]
+            v[i, j] = -∇(x + v_offset)[1]
         end
     end
     for k in 1:n
-        u[n + 1, k] = ∇([n + 1, k] + u_offset)[2] * n
-        v[k, n + 1] = -∇([k, n + 1] + v_offset)[1] * n
+        u[n + 1, k] = ∇([n + 1, k] + u_offset)[2]
+        v[k, n + 1] = -∇([k, n + 1] + v_offset)[1]
     end
     return Velocity(u, v)
 end
