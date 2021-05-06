@@ -1,5 +1,4 @@
 using LinearAlgebra
-using Plots
 
 # Bridson, 2007. Fast Poisson Disk Sampling in Arbitrary Dimensions.
 function poisson_disk_sample(r, max_check)
