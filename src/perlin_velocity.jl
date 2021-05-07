@@ -97,5 +97,7 @@ function perlin_velocity(grid, n, p, m)
         u[n + 1, k] = ∇([n + 1, k] + u_offset)[2]
         v[k, n + 1] = -∇([k, n + 1] + v_offset)[1]
     end
-    return Velocity(u, v)
+    # Scale factor for velocity to be around [-1, 1]
+    scale = 0.5 * (n - grid.n) / sum([p^k for k in 0:(m-1)])
+    return Velocity(scale * u, scale * v)
 end
