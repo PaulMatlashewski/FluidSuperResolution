@@ -29,6 +29,14 @@ function Field(value::T, xlims::Tuple{Int, Int}, ylims::Tuple{Int, Int}, offset:
     return Field(value * ones(T, n, m), xlims, ylims, offset)
 end
 
+function Base.size(field::Field{T}) where {T}
+    return size(field.values)
+end
+
+function Base.size(field::Field{T}, component::Int) where {T}
+    return size(field.values, component)
+end
+
 struct Velocity{T}
     u::Field{T}
     v::Field{T}
@@ -46,7 +54,11 @@ function Velocity(value::T, n::Int, m::Int) where {T}
 end
 
 function Base.size(velocity::Velocity{T}) where {T}
-    return size(velocity.v.values, 1), size(velocity.u.values, 2)
+    return size(velocity.v, 1), size(velocity.u, 2)
+end
+
+function Base.size(velocity::Velocity{T}, component::Int) where {T}
+    return size(velocity)[component]
 end
 
 struct Fluid{T}
@@ -73,6 +85,13 @@ function Fluid(velocity::Velocity{T}) where {T}
     return Fluid(velocity, A, b, p, (n, m))
 end
 
+function Base.size(fluid::Fluid{T}) where {T}
+    return size(fluid.velocity)
+end
+function Base.size(fluid::Fluid{T}, component::Int) where {T}
+    return size(fluid.velocity, component)
+end
+
 function Dx(values)
     return @views values[2:end, :] - values[1:end-1, :]
 end
@@ -90,8 +109,8 @@ function vorticity(velocity)
 end
 
 function apply_pressure_gradient!(fluid, dt)
-    n, m = fluid.size
-    for j in 1:n
+    n, m = size(fluid)
+    for j in 1:m
         for i in 1:n
             p = fluid.p[n * (j - 1) + i] * dt
             fluid.velocity.u.values[i, j] -= p
@@ -204,4 +223,17 @@ function advect!(velocity::Velocity, fluid, dt)
     vx, vy = euler(velocity.v.x[:], velocity.v.y[:], fluid.velocity, -dt)
     velocity.u.values .= reshape(interpolate(ux, uy, velocity.u.values, [0.0, 0.5]), size(velocity.u.values))
     velocity.v.values .= reshape(interpolate(vx, vy, velocity.v.values, [0.5, 0.0]), size(velocity.v.values))
+end
+
+# Rescale pixel coordinates between grids of different size, assuming
+# both grids correspond to the same domain.
+function rescale(x, source_size, target_size)
+    return (x - 1) / source_size * target_size + 1
+end
+
+function interpolate!(field_a, field_b)
+    size_a, size_b = size(field_a), size(field_b)
+    xs = rescale.(field_a.x, size_a[1], size_b[1])[:]
+    ys = rescale.(field_a.y, size_a[2], size_b[2])[:]
+    field_a.values .= reshape(interpolate(xs, ys, field_b.values, field_b.offset), size_a)
 end

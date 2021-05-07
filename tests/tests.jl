@@ -122,3 +122,39 @@ function streamplot(velocity, spacing, duration, fps, tail_duration, dt, file)
     end
     gif(anim, file, fps=fps)
 end
+
+function sample_comparison(dt, grid_size, p, m)
+    fluids = [Fluid(0.0, 64, 64), Fluid(0.0, 128, 128),
+              Fluid(0.0, 256, 256), Fluid(0.0, 512, 512)]
+    samples = sample_velocity_batch(fluids, grid_size, p, m, dt)
+    increments = map(
+        x -> cat(x[:, :, 3] - x[:, :, 1], x[:, :, 4] - x[:, :, 2], dims=3),
+        samples
+    )
+    # Interpolations
+    interp_u_a = Field(zeros(65, 64), (1, 65), (1, 64), (0.0, 0.5))
+    interp_u_b = Field(zeros(129, 128), (1, 129), (1, 128), (0.0, 0.5))
+    interp_u_c = Field(zeros(257, 256), (1, 257), (1, 256), (0.0, 0.5))
+    u_obs = Field(increments[1][:, :, 1], (1, 33), (1, 32), (0.0, 0.5))
+    interpolate!(interp_u_a, u_obs)
+    interpolate!(interp_u_b, interp_u_a)
+    interpolate!(interp_u_c, interp_u_b)
+
+    cmin = minimum(minimum.([x[:, :, 1] for x in increments]))
+    cmax = maximum(maximum.([x[:, :, 1] for x in increments]))
+
+    heatmap(increments[1][:, :, 1], clims=(cmin, cmax), title="observation 32x32", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("observation.png")
+    heatmap(increments[2][:, :, 1], clims=(cmin, cmax), title="simulation 64x64", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("simulation_64x64.png")
+    heatmap(increments[3][:, :, 1], clims=(cmin, cmax), title="simulation 128x128", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("simulation_128x128.png")
+    heatmap(increments[4][:, :, 1], clims=(cmin, cmax), title="simulation 256x256", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("simulation_256x256.png")
+    heatmap(interp_u_a.values, clims=(cmin, cmax), title="interpolation 64x64", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("interpolation_64x64.png")
+    heatmap(interp_u_b.values, clims=(cmin, cmax), title="interpolation 128x128", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("interpolation_128x128.png")
+    heatmap(interp_u_c.values, clims=(cmin, cmax), title="interpolation 256x256", size=(500,500), showaxis = false, grid=false, axis=nothing)
+    Plots.png("interpolation_256x256.png")
+end

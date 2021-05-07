@@ -101,3 +101,33 @@ function perlin_velocity(grid, n, p, m)
     scale = 0.5 * (n - grid.n) / sum([p^k for k in 0:(m-1)])
     return Velocity(scale * u, scale * v)
 end
+
+function interior(velocity)
+    d = Int(size(velocity, 1) / 4)
+    u = velocity.u.values[d+1:end-d, d+1:end-d]
+    v = velocity.v.values[d+1:end-d, d+1:end-d]
+    return cat(u, v', dims=3)
+end
+
+function sample_velocity(fluid, grid, p, m, dt)
+    n = size(fluid, 1)
+    # Intial velocity
+    velocity = perlin_velocity(grid, n, p, m)
+    # Scale velocity to cell units
+    velocity.u.values .*= n
+    velocity.v.values .*= n
+    # Final velocity
+    fluid.velocity.u.values .= velocity.u.values
+    fluid.velocity.v.values .= velocity.v.values
+    advect!(fluid.velocity, fluid, dt)
+    project!(fluid, dt)
+    # Return the interior of the grid to remove boundary effects.
+    initial_velocity = interior(velocity) / n
+    final_velocity = interior(fluid.velocity) / n
+    return cat(initial_velocity, final_velocity, dims=3)
+end
+
+function sample_velocity_batch(fluids, grid_size, p, m, dt)
+    grid = PerlinGrid(grid_size)
+    return [sample_velocity(fluid, grid, p, m, dt) for fluid in fluids]
+end
