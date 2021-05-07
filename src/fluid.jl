@@ -2,6 +2,7 @@ using LinearAlgebra
 using SparseArrays
 using SuiteSparse.CHOLMOD
 using SuiteSparse
+using Base: size
 
 struct Field{T}
     values::Matrix{T}
@@ -34,7 +35,7 @@ struct Velocity{T}
 end
 
 function Velocity(u_values::Matrix{T}, v_values::Matrix{T}) where {T}
-    n = size(u_values)[2]
+    n = size(u_values, 2)
     u = Field(u_values, (1, n+1), (1, n), (zero(T), T(0.5)))
     v = Field(v_values, (1, n), (1, n+1), (T(0.5), zero(T)))
     return Velocity(u, v)
@@ -42,6 +43,10 @@ end
 
 function Velocity(value::T, n::Int, m::Int) where {T}
     return Velocity(value * ones(T, n+1, m), value * ones(T, n, m+1))
+end
+
+function Base.size(velocity::Velocity{T}) where {T}
+    return size(velocity.v.values, 1), size(velocity.u.values, 2)
 end
 
 struct Fluid{T}
@@ -54,6 +59,14 @@ end
 
 function Fluid(value::T, n, m) where {T}
     velocity = Velocity(value, n, m)
+    A = SuiteSparse.CHOLMOD.cholesky(∇²(n, m ,T))
+    b = zeros(n * m)
+    p = zeros(n * m)
+    return Fluid(velocity, A, b, p, (n, m))
+end
+
+function Fluid(velocity::Velocity{T}) where {T}
+    n, m = size(velocity)
     A = SuiteSparse.CHOLMOD.cholesky(∇²(n, m ,T))
     b = zeros(n * m)
     p = zeros(n * m)
