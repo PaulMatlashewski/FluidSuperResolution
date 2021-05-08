@@ -10,7 +10,4 @@ export PerlinGrid, perlin_noise, perlin_velocity, sample_velocity, sample_veloci
 include("poisson_disk_sample.jl")
 export poisson_disk_sample
 
-include("model.jl")
-export model
-
 end # module
