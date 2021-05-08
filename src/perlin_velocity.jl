@@ -1,6 +1,5 @@
 using LinearAlgebra
 using ForwardDiff
-using DiffRules: @define_diffrule
 
 struct PerlinGrid{T}
     n::Int
