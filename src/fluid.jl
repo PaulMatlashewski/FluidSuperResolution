@@ -100,8 +100,12 @@ function Dy(values)
     return Dx(values')'
 end
 
+function divergence(u, v)
+    return Dx(u) .+ Dy(v)
+end
+
 function divergence(velocity)
-    return Dx(velocity.u.values) .+ Dy(velocity.v.values)
+    return divergence(velocity.u.values, velocity.v.values)
 end
 
 function vorticity(velocity)
