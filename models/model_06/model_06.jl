@@ -27,7 +27,7 @@ function model()
         Conv((5, 5), 32=>32, stride=1, pad=SamePad(), relu),
         ConvTranspose((5, 6), 32=>32, stride=2, pad=(2, 2)), # Upsample
         Conv((5, 5), 32=>32, stride=1, pad=SamePad(), relu),
-        Conv((2, 2), 32=>32, stride=2, pad=(1, 0));          # Downsample
+        Conv((2, 2), 32=>32, stride=2, pad=(1, 0)),          # Downsample
         Conv((5, 5), 32=>16, stride=1, pad=SamePad(), relu),
         Conv((5, 5), 16=>2, stride=1, pad=SamePad())
     )
