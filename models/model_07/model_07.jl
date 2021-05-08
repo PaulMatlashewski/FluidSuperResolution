@@ -13,7 +13,7 @@ function model()
     dt = 0.01        # Time step
     iters = 1000     # Training epochs
     η = 0.001        # Learning rate
-    α = 1.0          # Divergence loss weight
+    α = 1.0f0        # Divergence loss weight
 
     fluids = [
         Fluid(0.0, 64, 64),
@@ -36,8 +36,8 @@ function model()
     θ = Flux.params(model)
     opt = ADAM(η)
 
-    y1_interp = zeros(65, 64, 2, 6)
-    y2_interp = zeros(129, 128, 2, 6)
+    y1_interp = zeros(Float32, 65, 64, 2, 6)
+    y2_interp = zeros(Float32, 129, 128, 2, 6)
 
     losses = Dict(
         "model_loss_1" => [],
@@ -106,12 +106,12 @@ end
 function interpolation_loss!(y1_interp, y2_interp, x)
     batchsize = size(x, 4)
     for i in 1:batchsize
-        x_interp_u = Field(x[:, :, 1, i], (1, 33), (1, 32), (0.0, 0.5))
-        x_interp_v = Field(x[:, :, 2, i], (1, 33), (1, 32), (0.0, 0.5))
-        y1_interp_u = Field(zeros(65, 64), (1, 65), (1, 64), (0.0, 0.5))
-        y1_interp_v = Field(zeros(65, 64), (1, 65), (1, 64), (0.0, 0.5))
-        y2_interp_u = Field(zeros(129, 128), (1, 129), (1, 128), (0.0, 0.5))
-        y2_interp_v = Field(zeros(129, 128), (1, 129), (1, 128), (0.0, 0.5))
+        x_interp_u = Field(x[:, :, 1, i], (1, 33), (1, 32), (0.0f0, 0.5f0))
+        x_interp_v = Field(x[:, :, 2, i], (1, 33), (1, 32), (0.0f0, 0.5f0))
+        y1_interp_u = Field(zeros(Float32, 65, 64), (1, 65), (1, 64), (0.0f0, 0.5f0))
+        y1_interp_v = Field(zeros(Float32, 65, 64), (1, 65), (1, 64), (0.0f0, 0.5f0))
+        y2_interp_u = Field(zeros(Float32, 129, 128), (1, 129), (1, 128), (0.0f0, 0.5f0))
+        y2_interp_v = Field(zeros(Float32, 129, 128), (1, 129), (1, 128), (0.0f0, 0.5f0))
         interpolate!(y1_interp_u, x_interp_u)
         interpolate!(y2_interp_u, y1_interp_u)
         interpolate!(y1_interp_v, x_interp_v)
