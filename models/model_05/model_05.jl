@@ -5,6 +5,9 @@ using FluidSuperResolution
 using LinearAlgebra
 using Flux
 using Random
+using Statistics
+using Plots
+using BSON
 using BSON: @save
 
 function model()
@@ -144,4 +147,50 @@ end
 
 function velocity_increment(x)
     return cat(x[:, :, 3] - x[:, :, 1], x[:, :, 4] - x[:, :, 2], dims=3)
+end
+
+function post_process()
+    model = BSON.load("model_5.bson")[:model]
+    losses = BSON.load("loss_5.bson")[:losses]
+
+    model_loss = losses["model_loss_1"] + losses["model_loss_2"]
+    interp_loss = losses["interp_loss_1"] + losses["interp_loss_2"]
+    interp_loss_mean = mean(interp_loss)
+    plot(model_loss, label="model loss", size=(500, 500))
+    hline!([interp_loss_mean], label="Interpolation loss")
+    Plots.pdf("model_loss.pdf")
+
+    fluids = [
+        Fluid(0.0, 64, 64),
+        Fluid(0.0, 128, 128),
+        Fluid(0.0, 256, 256)
+    ]
+    dt = 0.01
+    x, y1, y2 = sample_batch(fluids, dt)
+    x_u = x[:, :, 1:1, :]
+    y1 = y1[:, :, 1:1, :]
+    y2 = y2[:, :, 1:1, :]
+    ŷ1 = model(x_u)
+    ŷ2 = model(ŷ1)
+    y1_interp = zeros(65, 64, 2, 6)
+    y2_interp = zeros(129, 128, 2, 6)
+    interpolation_loss!(y1_interp, y2_interp, x)
+    batchsize = size(x, 4)
+    for i in 1:batchsize
+        clims = (minimum(y2[:, :, 1, i]), maximum(y2[:, :, 1, i]))
+        heatmap(x_u[:, :, 1, i], clims=clims, title="observation 32x32", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("x_$(i).png")
+        heatmap(y1[:, :, 1, i], clims=clims, title="simulation 64x64", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("y1_$(i).png")
+        heatmap(y2[:, :, 1, i], clims=clims, title="simulation 128x128", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("y2_$(i).png")
+        heatmap(ŷ1[:, :, 1, i], clims=clims, title="model 64x64", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("y1_hat_$(i).png")
+        heatmap(ŷ2[:, :, 1, i], clims=clims, title="model 128x128", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("y2_hat_$(i).png")
+        heatmap(y1_interp[:, :, 1, i], clims=clims, title="interpolation 64x64", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("y1_interp_$(i).png")
+        heatmap(y2_interp[:, :, 1, i], clims=clims, title="interpolation 128x128", size=(500,500), showaxis = false, grid=false, axis=nothing)
+        png("y2_interp_$(i).png")
+    end
 end
