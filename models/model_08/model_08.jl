@@ -34,8 +34,8 @@ function model()
     θ = Flux.params(model)
     opt = ADAM(η)
 
-    y1_interp = zeros(Float32, 65, 64, 2, 6)
-    y2_interp = zeros(Float32, 129, 128, 2, 6)
+    y1_interp = zeros(Float32, 65, 64, 2, 8)
+    y2_interp = zeros(Float32, 129, 128, 2, 8)
 
     losses = Dict(
         "model_loss_1" => [],
