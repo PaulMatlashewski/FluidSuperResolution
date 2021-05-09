@@ -13,7 +13,7 @@ function model()
     dt = 0.01        # Time step
     iters = 2500     # Training epochs
     η = 0.001        # Learning rate
-    α = 1.0f0        # Divergence loss weight
+    α = 0.1f0        # Divergence loss weight
 
     fluids = [
         Fluid(0.0, 64, 64),
