@@ -1,11 +1,12 @@
-# Model 07
-# Convolution transpose 2 levels in model
-# Convert to Float32
+# Model 08
+# Batchsize of 8, 2500 iterations, longer CNN and samples
+# are less smooth
 
 using FluidSuperResolution
 using LinearAlgebra
 using Flux
 using Random
+using Logging
 using BSON: @save
 
 function model()
@@ -48,15 +49,19 @@ function model()
         "interp_div_loss_2" => [],
         "gradient_size" => []
     )
+
+    # Logging file
+    io = open("model_08_log.txt", "w+")
+    logger = SimpleLogger(io)
+    global_logger(logger)
+
     local model_loss_1
     local model_loss_2
     local div_loss_1
     local div_loss_2
     for i in 1:iters
-        println("Training step: $(i)")
-        println("    Sampling Batch")
+        @info("Training step: $(i)")
         x, y1, y2 = sample_batch(fluids, dt)
-        println("    Prediction")
         gs = gradient(θ) do
             ŷ1 = model(x)
             ŷ2 = model(ŷ1)
@@ -73,11 +78,12 @@ function model()
         interp_loss_2 = Flux.mse(y2_interp, y2)
         interp_div_loss_1 = α * divergence_loss(y1_interp)
         interp_div_loss_2 = α * divergence_loss(y2_interp)
-        println("              ||∇||: $(norm(gs))")
-        println("           Div Loss: $(div_loss_1 + div_loss_2)")
-        println("    Interp Div Loss: $(interp_div_loss_1 + interp_div_loss_2)")
-        println("         Model Loss: $(model_loss_1 + model_loss_2)")
-        println(" Interpolation Loss: $(interp_loss_1 + interp_loss_2)")
+        @info("              ||∇||: $(norm(gs))")
+        @info("           Div Loss: $(div_loss_1 + div_loss_2)")
+        @info("    Interp Div Loss: $(interp_div_loss_1 + interp_div_loss_2)")
+        @info("         Model Loss: $(model_loss_1 + model_loss_2)")
+        @info(" Interpolation Loss: $(interp_loss_1 + interp_loss_2)")
+        flush(io)
         push!(losses["model_loss_1"], model_loss_1)
         push!(losses["model_loss_2"], model_loss_2)
         push!(losses["div_loss_1"], div_loss_1)
@@ -88,6 +94,7 @@ function model()
         push!(losses["interp_div_loss_2"], interp_div_loss_2)
         push!(losses["gradient_size"], norm(gs))
     end
+    close(io)
     @save "model_6.bson" model
     @save "loss_6.bson" losses
 end
@@ -147,3 +154,5 @@ end
 function velocity_increment(x)
     return cat(x[:, :, 3] - x[:, :, 1], x[:, :, 4] - x[:, :, 2], dims=3)
 end
+
+model()
