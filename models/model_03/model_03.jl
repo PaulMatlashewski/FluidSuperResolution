@@ -10,7 +10,7 @@ function model()
     dt = 0.01    # Time step
     iters = 1000 # Training iterations
     η = 0.001    # Learning rate
-    α = 1.0      # Divergence loss weight
+    α = 0.5f0    # Divergence loss weight
 
     fluids = [
         Fluid(0.0, 128, 128),
@@ -29,8 +29,8 @@ function model()
     θ = Flux.params(model)
     opt = ADAM(η)
 
-    y1_interp = zeros(129, 128, 2, 6)
-    y2_interp = zeros(257, 256, 2, 6)
+    y1_interp = zeros(Float32, 129, 128, 2, 6)
+    y2_interp = zeros(Float32, 257, 256, 2, 6)
 
     losses = Dict(
         "model_loss_1" => [],
@@ -84,12 +84,12 @@ function model()
         push!(losses["gradient_size"], norm(gs))
     end
     @save "model.bson" model
-    CSV.write("loss.csv", losses)
+    @save "loss.bson" losses
 end
 
-function divergence_loss(y)
+function divergence_loss(y::Array{T, 4}) where {T}
     n, m, _, batchsize = size(y)
-    s = 0.0
+    s = zero(T)
     for i in 1:batchsize
         s += sum(divergence(y[:, :, 1, i], y[:, :, 2, i]').^2)
     end
@@ -99,12 +99,12 @@ end
 function interpolation_loss!(y1_interp, y2_interp, x)
     batchsize = size(x, 4)
     for i in 1:batchsize
-        x_interp_u = Field(x[:, :, 1, i], (1, 65), (1, 64), (0.0, 0.5))
-        x_interp_v = Field(x[:, :, 2, i], (1, 65), (1, 64), (0.0, 0.5))
-        y1_interp_u = Field(zeros(129, 128), (1, 129), (1, 128), (0.0, 0.5))
-        y1_interp_v = Field(zeros(129, 128), (1, 129), (1, 128), (0.0, 0.5))
-        y2_interp_u = Field(zeros(257, 256), (1, 257), (1, 256), (0.0, 0.5))
-        y2_interp_v = Field(zeros(257, 256), (1, 257), (1, 256), (0.0, 0.5))
+        x_interp_u = Field(x[:, :, 1, i], (1, 65), (1, 64), (0.0f0, 0.5f0))
+        x_interp_v = Field(x[:, :, 2, i], (1, 65), (1, 64), (0.0f0, 0.5f0))
+        y1_interp_u = Field(zeros(Float32, 129, 128), (1, 129), (1, 128), (0.0f0, 0.5f0))
+        y1_interp_v = Field(zeros(Float32, 129, 128), (1, 129), (1, 128), (0.0f0, 0.5f0))
+        y2_interp_u = Field(zeros(Float32, 257, 256), (1, 257), (1, 256), (0.0f0, 0.5f0))
+        y2_interp_v = Field(zeros(Float32, 257, 256), (1, 257), (1, 256), (0.0f0, 0.5f0))
         interpolate!(y1_interp_u, x_interp_u)
         interpolate!(y2_interp_u, y1_interp_u)
         interpolate!(y1_interp_v, x_interp_v)
@@ -134,7 +134,7 @@ function sample_batch(fluids, dt)
     dy1 = cat([velocity_increment(y) for y in [y1_1, y1_2, y1_3, y1_4, y1_5, y1_6]]..., dims=4)
     dy2 = cat([velocity_increment(y) for y in [y2_1, y2_2, y2_3, y2_4, y2_5, y2_6]]..., dims=4)
 
-    return dx, dy1, dy2
+    return Float32.(dx), Float32.(dy1), Float32.(dy2)
 end
 
 function velocity_increment(x)
