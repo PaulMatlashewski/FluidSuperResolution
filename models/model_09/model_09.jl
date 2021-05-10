@@ -16,7 +16,7 @@ using BSON: @save
 function model()
     Random.seed!(42)
     dt = 0.01        # Time step
-    iters = 2500     # Training epochs
+    iters = 4000     # Training epochs
     η = 0.001        # Learning rate
     α = 1.0f0        # Divergence loss weight
 
@@ -30,7 +30,7 @@ function model()
         Conv((3, 3), 2=>16, stride=1, pad=SamePad(), relu),
         Conv((3, 3), 16=>16, stride=1, pad=SamePad(), relu),
         Conv((3, 3), 16=>32, stride=1, pad=SamePad(), relu),
-        ConvTranspose((3, 4), 32=>32, stride=2, pad=(2, 2), relu),
+        ConvTranspose((3, 4), 32=>32, stride=2, pad=(1, 1), relu),
         Conv((3, 3), 32=>16, stride=1, pad=SamePad(), relu),
         Conv((3, 3), 16=>16, stride=1, pad=SamePad(), relu),
         Conv((3, 3), 16=>2, stride=1, pad=SamePad())
@@ -55,7 +55,7 @@ function model()
     )
 
     # Logging file
-    io = open("model_00_log.txt", "w+")
+    io = open("model_09_log.txt", "w+")
     logger = SimpleLogger(io)
     global_logger(logger)
 
@@ -202,4 +202,4 @@ function post_process()
     end
 end
 
-model()
+# model()
