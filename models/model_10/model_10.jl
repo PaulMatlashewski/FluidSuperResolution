@@ -59,7 +59,7 @@ function model()
     local div_loss_1
     local div_loss_2
     for i in 1:iters
-        @info("Training step: $(i)")
+        write(io, "Training step: $(i)")
         x, y1, y2 = sample_batch(fluids, dt)
         gs = gradient(θ) do
             ŷ1 = model(x)
@@ -77,12 +77,13 @@ function model()
         interp_loss_2 = Flux.mse(y2_interp, y2)
         interp_div_loss_1 = α * divergence_loss(y1_interp)
         interp_div_loss_2 = α * divergence_loss(y2_interp)
-        status = ("              ||∇||: $(norm(gs))\n" + 
-                  "           Div Loss: $(div_loss_1 + div_loss_2)\n" +
-                  "    Interp Div Loss: $(interp_div_loss_1 + interp_div_loss_2)\n" +
-                  "         Model Loss: $(model_loss_1 + model_loss_2)\n" +
+        status = ("              ||∇||: $(norm(gs))\n" *
+                  "           Div Loss: $(div_loss_1 + div_loss_2)\n" *
+                  "    Interp Div Loss: $(interp_div_loss_1 + interp_div_loss_2)\n" *
+                  "         Model Loss: $(model_loss_1 + model_loss_2)\n" *
                   " Interpolation Loss: $(interp_loss_1 + interp_loss_2)\n")
         write(io, status)
+        flush(io)
         push!(losses["model_loss_1"], model_loss_1)
         push!(losses["model_loss_2"], model_loss_2)
         push!(losses["div_loss_1"], div_loss_1)
